@@ -1,8 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 last_location: Optional[dict] = None
 
@@ -15,7 +25,6 @@ class Location(BaseModel):
 def update_location(location: Location):
     global last_location
     try:
-        # Split the "coor" string into lat and lon
         lat_str, lon_str = location.coor.split(",")
         lat = float(lat_str.strip())
         lon = float(lon_str.strip())
