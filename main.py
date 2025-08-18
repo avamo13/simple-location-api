@@ -85,7 +85,7 @@ async def login_page():
     <html>
         <head><title>Login</title></head>
         <body>
-            <h2>Enter API Key to access map</h2>
+            <h2>Enter Key to access map</h2>
             <form action="/" method="post">
                 <input type="text" name="key" placeholder="API Key" />
                 <button type="submit">Submit</button>
