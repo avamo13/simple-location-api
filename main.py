@@ -2,7 +2,6 @@ import os
 from fastapi import FastAPI, HTTPException, Query, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 
@@ -16,9 +15,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Serve static files (Leaflet CSS/JS)
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # API key from environment
 API_KEY = os.getenv("api_key")
@@ -108,7 +104,7 @@ async def login_submit(key: str = Form(...)):
         </body></html>
         """
     
-    # Serve the HTML map page using local Leaflet
+    # Serve the HTML map page using Leaflet CDN
     return f"""
     <!DOCTYPE html>
     <html>
@@ -116,7 +112,7 @@ async def login_submit(key: str = Form(...)):
         <title>Phone Location Viewer</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="/static/leaflet/leaflet.css"/>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
         <style>
             body {{ font-family: Arial, sans-serif; margin: 0; padding: 0; }}
             #info {{ padding: 10px; text-align: center; background: #f0f0f0; }}
@@ -132,7 +128,7 @@ async def login_submit(key: str = Form(...)):
         </div>
         <div id="map"></div>
 
-        <script src="/static/leaflet/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
             const API_KEY = "{API_KEY}";
             const LOCATION_URL = `/location?api_key=${{API_KEY}}`;
