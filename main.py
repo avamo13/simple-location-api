@@ -85,9 +85,9 @@ async def login_page():
     <html>
         <head><title>Login</title></head>
         <body>
-            <h2>Enter Key to access map</h2>
+            <h2>Enter Password to access map</h2>
             <form action="/" method="post">
-                <input type="text" name="key" placeholder="API Key" />
+                <input type="text" name="key" placeholder="Password" />
                 <button type="submit">Submit</button>
             </form>
         </body>
@@ -99,7 +99,7 @@ async def login_submit(key: str = Form(...)):
     if key != API_KEY:
         return """
         <html><body>
-            <h2>Invalid API Key</h2>
+            <h2>Incorrect Password</h2>
             <a href="/">Try again</a>
         </body></html>
         """
