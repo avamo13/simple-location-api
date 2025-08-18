@@ -16,13 +16,19 @@ app.add_middleware(
 )
 
 last_location: Optional[dict] = None
+last_connection: Optional[dict] = None
 
 class Location(BaseModel):
     coor: str
     time: str
     date: str
 
-@app.post("/update")
+class Connection(BaseModel):
+    time: str
+    date: str
+
+
+@app.post("/update/location")
 def update_location(location: Location):
     global last_location
     try:
@@ -40,6 +46,15 @@ def update_location(location: Location):
     }
     return {"status": "success", "stored": last_location}
 
+@app.post("/update/connection")
+def update_status(connection: Connection):
+    global last_connection
+    last_connection = {
+        "time": connection.time,
+        "date": connection.date
+    }
+    return {"status": "success", "stored": last_connection}
+
 @app.get("/location")
 def get_location(api_key: str = Query(..., description="API key for access")):
     if api_key != os.getenv("api_key"):
@@ -47,3 +62,11 @@ def get_location(api_key: str = Query(..., description="API key for access")):
     if not last_location:
         raise HTTPException(status_code=404, detail="No location stored yet")
     return last_location
+
+@app.get("/connection")
+def get_connection(api_key: str = Query(..., description="API key for access")):
+    if api_key != os.getenv("api_key"):
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    if not last_connection:
+        raise HTTPException(status_code=404, detail="No location stored yet")
+    return last_connection
