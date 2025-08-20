@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, HTTPException, Query, Request, Form
+from fastapi import FastAPI, HTTPException, Query, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -7,7 +7,6 @@ from typing import Optional
 
 app = FastAPI()
 
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,19 +20,15 @@ API_KEY = os.getenv("api_key")
 
 # Stored data
 last_location: Optional[dict] = None
-last_connection: Optional[dict] = None
 
 # Models
 class Location(BaseModel):
     coor: str
+    acc:  float
     time: str
     date: str
 
-class Connection(BaseModel):
-    time: str
-    date: str
-
-# Update endpoints
+# Update location endpoint
 @app.post("/update/location")
 def update_location(location: Location):
     global last_location
@@ -47,21 +42,13 @@ def update_location(location: Location):
     last_location = {
         "lat": lat,
         "lon": lon,
+        "acc": location.acc,
         "time": location.time,
         "date": location.date
     }
     return {"status": "success", "stored": last_location}
 
-@app.post("/update/connection")
-def update_connection(connection: Connection):
-    global last_connection
-    last_connection = {
-        "time": connection.time,
-        "date": connection.date
-    }
-    return {"status": "success", "stored": last_connection}
-
-# Get endpoints (protected by API key)
+# Get location endpoint (protected by API key)
 @app.get("/location")
 def get_location(api_key: str = Query(..., description="API key for access")):
     if api_key != API_KEY:
@@ -69,14 +56,6 @@ def get_location(api_key: str = Query(..., description="API key for access")):
     if not last_location:
         raise HTTPException(status_code=404, detail="No location stored yet")
     return last_location
-
-@app.get("/connection")
-def get_connection(api_key: str = Query(..., description="API key for access")):
-    if api_key != API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    if not last_connection:
-        raise HTTPException(status_code=404, detail="No connection stored yet")
-    return last_connection
 
 # Root page with login
 @app.get("/", response_class=HTMLResponse)
@@ -132,7 +111,6 @@ async def login_submit(key: str = Form(...)):
         <script>
             const API_KEY = "{API_KEY}";
             const LOCATION_URL = `/location?api_key=${{API_KEY}}`;
-            const CONNECTION_URL = `/connection?api_key=${{API_KEY}}`;
 
             const map = L.map('map').setView([0, 0], 2);
             L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
@@ -140,29 +118,35 @@ async def login_submit(key: str = Form(...)):
             }}).addTo(map);
 
             let marker;
+            let circle;
 
             async function fetchLocation() {{
                 try {{
                     const locResp = await fetch(LOCATION_URL);
-                    const connResp = await fetch(CONNECTION_URL);
-                    if (!locResp.ok || !connResp.ok) throw new Error('Failed fetching data');
+                    if (!locResp.ok) throw new Error('Failed fetching location');
 
                     const locData = await locResp.json();
-                    const connData = await connResp.json();
 
                     const lat = parseFloat(locData.lat);
                     const lon = parseFloat(locData.lon);
+                    const acc = parseFloat(locData.acc);
                     let locTime = locData.time.replace('.', ':');
-                    let connTime = connData.time.replace('.', ':');
 
                     document.getElementById('details').innerText =
-                        `Location Timestamp: ${{locTime}} ${{locData.date}}\n` +
-                        `Activity Timestamp: ${{connTime}} ${{connData.date}}`;
+                        `Location Timestamp: ${{locTime}} ${{locData.date}}\\nAccuracy: ±${{acc}} m`;
 
+                    // Remove previous marker and circle
                     if(marker) map.removeLayer(marker);
+                    if(circle) map.removeLayer(circle);
+
+                    // Add marker
                     marker = L.marker([lat, lon]).addTo(map)
-                              .bindPopup("Last Known Location")
+                              .bindPopup(`Last Known Location<br>Accuracy: ±${{acc}} m`)
                               .openPopup();
+
+                    // Add circle representing accuracy
+                    circle = L.circle([lat, lon], {{ radius: acc, color: 'blue', fillColor: '#add8e6', fillOpacity: 0.3 }}).addTo(map);
+
                     map.setView([lat, lon], 15);
 
                 }} catch (err) {{
